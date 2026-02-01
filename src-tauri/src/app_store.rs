@@ -44,6 +44,15 @@ fn read_override_from_store(app: &tauri::AppHandle) -> Option<PathBuf> {
 
             let path = resolve_path(path_str);
 
+            if is_wsl_unc_path(&path) {
+                log::warn!(
+                    "检测到 app_config_dir 指向 WSL UNC 路径 (\\\\wsl.localhost / \\\\wsl$)。\n\
+                     Windows 上 SQLite 可能无法正确锁定该路径下的数据库，\n\
+                     为避免 database is locked 导致应用无法启动，将暂时忽略该配置并回退到默认目录。"
+                );
+                return None;
+            }
+
             if !path.exists() {
                 log::warn!(
                     "Store 中配置的 app_config_dir 不存在: {path:?}\n\
@@ -122,6 +131,17 @@ fn resolve_path(raw: &str) -> PathBuf {
     }
 
     PathBuf::from(raw)
+}
+
+#[cfg(windows)]
+fn is_wsl_unc_path(path: &PathBuf) -> bool {
+    let raw = path.to_string_lossy().to_lowercase();
+    raw.starts_with(r"\\wsl.localhost\\") || raw.starts_with(r"\\wsl$\\")
+}
+
+#[cfg(not(windows))]
+fn is_wsl_unc_path(_path: &PathBuf) -> bool {
+    false
 }
 
 /// 从旧的 settings.json 迁移 app_config_dir 到 Store
