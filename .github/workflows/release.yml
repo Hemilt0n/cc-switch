@@ -19,10 +19,6 @@ jobs:
       matrix:
         include:
           - os: windows-2022
-          - os: ubuntu-22.04
-          - os: ubuntu-22.04-arm
-            arch: arm64
-          - os: macos-14
 
     steps:
       - name: Checkout
@@ -100,7 +96,6 @@ jobs:
           # 调试：检查 Secret 是否存在（允许为空，跳过签名）
           if [ -z "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then
             echo "⚠️ TAURI_SIGNING_PRIVATE_KEY Secret 为空或不存在，跳过签名步骤" >&2
-            echo "SKIP_TAURI_SIGNING=1" >> "$GITHUB_ENV"
             exit 0
           fi
           
@@ -152,30 +147,15 @@ jobs:
 
       - name: Build Tauri App (macOS)
         if: runner.os == 'macOS'
-        run: |
-          if [ "${SKIP_TAURI_SIGNING:-}" = "1" ]; then
-            pnpm tauri build --target universal-apple-darwin --no-sign
-          else
-            pnpm tauri build --target universal-apple-darwin
-          fi
+        run: pnpm tauri build --target universal-apple-darwin
 
       - name: Build Tauri App (Windows)
         if: runner.os == 'Windows'
-        run: |
-          if [ "${SKIP_TAURI_SIGNING:-}" = "1" ]; then
-            pnpm tauri build --no-sign
-          else
-            pnpm tauri build
-          fi
+        run: pnpm tauri build
 
       - name: Build Tauri App (Linux)
         if: runner.os == 'Linux'
-        run: |
-          if [ "${SKIP_TAURI_SIGNING:-}" = "1" ]; then
-            pnpm tauri build --bundles appimage,deb,rpm --no-sign
-          else
-            pnpm tauri build --bundles appimage,deb,rpm
-          fi
+        run: pnpm tauri build --bundles appimage,deb,rpm
 
       - name: Prepare macOS Assets
         if: runner.os == 'macOS'
